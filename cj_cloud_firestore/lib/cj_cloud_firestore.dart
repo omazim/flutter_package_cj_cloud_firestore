@@ -1,6 +1,7 @@
 library cj_cloud_firestore;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -17,6 +18,8 @@ class CjCloudFirestore {
   static DocumentReference? userDocReference;
 
   FirebaseFirestore _store = FirebaseFirestore.instance;
+
+  FirebaseFirestore get store => _store;
   WriteBatch get batch => _store.batch();  
 
   String collectionNameFromTableName (String tableName) {
@@ -86,8 +89,9 @@ class CjCloudFirestore {
     return _store.collection(collName);
   }  
 
-  /// Write to or delete any document on our firestore.
-  Future<void> updateDocumentWithRef (DocumentReference docRef, dynamic data, {bool doUpdate: true, bool isDataSerializable: true}) async {    
+  /// Write to or delete any document on firestore when you have the document reference.
+  /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
+  Future<void> updateDocWithRef (DocumentReference docRef, dynamic data, {bool doUpdate: true, bool isDataSerializable: true}) async {    
 
     Map<String, dynamic> dataMap = isDataSerializable ? data.toJson(): data;
     
@@ -95,7 +99,6 @@ class CjCloudFirestore {
       if (doUpdate) {  
         await docRef.update(dataMap);  
       } else {
-  
         await docRef.delete();        
       }
     } catch (err) {
@@ -103,9 +106,103 @@ class CjCloudFirestore {
     }
   }
 
+  /// Write to any document on firestore when you have the document id OR are creating a new document.
+  /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
+  Future<bool> updateDocInCollection (String collName, dynamic data, {String docId:"", bool isDataSerializable: true}) async {
+    
+    Map<String, dynamic> dataMap = isDataSerializable ? data.toJson(): data;    
+    CollectionReference collRef = collectionRef(collName);
+    bool updated = false;
+    try {
+    // if (gHasConnectivity) {
+      if (docId.isEmpty) {
+        await collRef.doc().set(dataMap);
+      } else {
+        await collRef.doc(docId).update(dataMap);
+      }
+    // } else {
+    //   usersCollRef?.doc(currentUserId).update(json);
+    // }
+    updated = true;
+    } catch (err) {
+      print("Error @updateDocInCollection: $err");
+    }
+
+    return updated;
+  }
+
+  /// Write to any document on firestore when you have a data map and the document id OR are creating a new document.
+  Future<bool> updateDocInCollectionFromMap (String collName, Map<String, dynamic> dataMap, {String docId:""}) async {
+    
+    CollectionReference? collRef = collectionRef(collName);
+    bool updated = false;
+
+    try {
+    // if (gHasConnectivity) {
+      if (docId.isEmpty) {
+        await collRef.doc().set(dataMap);
+      } else {
+        await collRef.doc(docId).update(dataMap);
+      }
+    // } else {
+    //   usersCollRef?.doc(currentUserId).update(json);
+    // }
+    updated = true;
+    } catch (err) {
+      print("Error @updateDocInCollectionFromMap: $err");
+    }
+
+    return updated;
+  }
+
+  /// Write to or delete any document on firestore.
+  /// If data is not a serializable class, then it must be a map string dynamic.
+  /// If it is NOT a serializable class, pass [isDataSerializable] as false.
+  Future<bool> touchDocument (String collName, {dynamic data, String docId: "", bool doWrite: true, bool isDataSerializable: true}) async {
+    
+    CollectionReference ref = collectionRef(collName);
+    bool touched = false;
+
+    if (!doWrite && docId.isEmpty) throw "Doc Id must be provided when deleting a document.";
+
+    try {
+      if (doWrite) {
+        Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
+        
+        // Todo: Let's have a timestamp on the server for the benefits outlined in firestore documentation.
+        // json["Timestamp"] = FirebaseFirestore.in
+        if (docId.isEmpty) {
+          // if (gHasConnectivity) {
+            await ref.add(dataMap);
+          // } else {
+          //   ref?.add(json);
+          // }
+        } else {
+          // if (gHasConnectivity) {
+            await ref.doc(docId).set(dataMap, SetOptions(merge: true));
+          // } else {
+          //   ref?.doc(docId).set(json, SetOptions(merge: true));
+          // }
+        }
+      } else {
+        // if (gHasConnectivity) {
+          await ref.doc(docId).delete();
+        // } else {
+        //   ref?.doc(docId).delete();
+        // }
+      }
+      touched = true;
+    } catch (err) {
+      print("error @touchDocumentInCollection $err.");      
+    }
+
+    return touched;
+  }
+
   /// Read a collection by applying the query params (if any).
   /// Return a list of the documents or document references depending on arguments.
-  Future<List<dynamic>?> readACollection(String tableName,
+  /// Returns an empty list if no documents in the collection match the query.
+  Future<List<dynamic>> readACollection(String tableName,
       {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
     queryParam = queryParam ??= MyFirestoreQueryParam()..orderAsc = true;
 
@@ -194,9 +291,7 @@ class CjCloudFirestore {
       print("read ${snapshot.docs.length} docs from collection ${collRef.id}");
 
       if (snapshot.docs.length > 0) {
-        final list = getDocSnapshots
-            ? snapshot.docs
-            : snapshot.docs.map((doc) => doc.data()).toList();
+        final list = getDocSnapshots ? snapshot.docs: snapshot.docs.map((doc) => doc.data()).toList();
 
         return list;
       } else {
@@ -205,11 +300,12 @@ class CjCloudFirestore {
     } catch (err) {
       print("error reading collection $tableName \n $err");
 
-      return null;
+      return [];
     }
   }
 
   /// Return a single document snapshot for the passed collection and doc id.
+  /// Returns null if no document bears that id.
   Future<dynamic> readADocumentById(String tableName, String docId, {bool getDocSnapshot: false}) async {
     // String collName = collectionNameFromTableName(tableName);
     DocumentSnapshot? snapshot = await collectionRef(tableName).doc(docId).get();
@@ -225,14 +321,11 @@ class CjCloudFirestore {
   Future<dynamic> readADocumentByQuery(String tableName, MyFirestoreQueryParam queryParam, {bool getDocSnapshot: false}) async {
     queryParam = queryParam;
 
-    final dataOrSnapshotsOrNull = await readACollection(tableName,
-        queryParam: queryParam, getDocSnapshots: getDocSnapshot);
+    final listOfDocsOrSnapshots = await readACollection(tableName, queryParam: queryParam, getDocSnapshots: getDocSnapshot);
+    
+    if (listOfDocsOrSnapshots.length == 0) return null;
 
-    if (dataOrSnapshotsOrNull == null) return null;
-
-    if (dataOrSnapshotsOrNull.length == 0) return null;
-
-    return dataOrSnapshotsOrNull[0];
+    return listOfDocsOrSnapshots[0];
   }
 
   Future<bool> batchWrite (List<MyBatchData> dataArray) async {
