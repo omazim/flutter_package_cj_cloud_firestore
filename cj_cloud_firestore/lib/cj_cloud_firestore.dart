@@ -237,14 +237,19 @@ class CjCloudFirestore {
 
   Future<bool> batchWrite (List<MyBatchData> dataArray) async {
     final WriteBatch b = batch;
-    print("write ${dataArray.length} items in batch");
+    print("writing ${dataArray.length} items in batch...");
     dataArray.forEach((data) {
       final String tableName = data.tableName;
       final String path = _docOrCollectionPath(tableName, docId: data.docId);
       final bool isEven = path.split("/").length % 2 == 0;
       final String docId = data.docId;
-      final DocumentReference ref =
-          isEven ? _store.doc(path) : _store.collection(path).doc(docId);
+      late final DocumentReference ref;
+      
+      if (isEven) {
+        ref = _store.doc(path);
+      } else {
+        ref = docId.isEmpty ? _store.collection(path).doc() : _store.collection(path).doc(docId);
+      }
 
       switch (data.action.toLowerCase()) {
         case "update":
