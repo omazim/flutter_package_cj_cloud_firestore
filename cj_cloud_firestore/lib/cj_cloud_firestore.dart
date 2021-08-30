@@ -208,15 +208,16 @@ class CjCloudFirestore {
   /// Read a collection by applying the query params (if any).
   /// Return a list of the documents or document references depending on arguments.
   /// Returns an empty list if no documents in the collection match the query.
-  Future<List<dynamic>> readACollection(String tableName,
-      {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
+  Future<List<dynamic>> readACollection(String tableName, {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
     queryParam = queryParam ??= MyFirestoreQueryParam()..orderAsc = true;
 
-    final collRef = collectionRef(tableName);// Oma fixed this line 22 Aug 2021.
+    // final collRef = collectionRef(tableName);// Oma fixed this line 22 Aug 2021.
     // Order by specified field or the first field in the first query criteria (if any).
     // Otherwise no ordering.
     // final bool descending = queryParam.orderAsc;
 
+    final String path = _docOrCollectionPath(tableName);
+    final collRef = _store.collection(path);
     Query useQuery = collRef;
     bool doNotRun = false;
 
@@ -313,8 +314,10 @@ class CjCloudFirestore {
   /// Return a single document snapshot for the passed collection and doc id.
   /// Returns null if no document bears that id.
   Future<dynamic> readADocumentById(String tableName, String docId, {bool getDocSnapshot: false}) async {
-    // String collName = collectionNameFromTableName(tableName);
-    DocumentSnapshot? snapshot = await collectionRef(tableName).doc(docId).get();
+    
+    final String path = _docOrCollectionPath(tableName, docId: docId);
+    // DocumentSnapshot? snapshot = await collectionRef(tableName).doc(docId).get();
+    DocumentSnapshot? snapshot = await store.doc(path).get();
 
     if (snapshot.exists) {
       return getDocSnapshot ? snapshot : snapshot.data();
