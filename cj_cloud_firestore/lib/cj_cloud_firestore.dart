@@ -72,9 +72,10 @@ class CjCloudFirestore {
     } else {
       path = collectionNameFromTableName(tableName) + _realm;
     }
+    
     if (docId.isNotEmpty) path += "/" + docId;
-
-    print("@_docOrCollectionPath $tableName & docId $docId <=> $path");
+    print("@_docOrCollectionPath: doc id: $docId,\nfinal path: $path");
+    // print("@_docOrCollectionPath $tableName & docId $docId <=> $path");
     return path;
   }
 
@@ -86,9 +87,10 @@ class CjCloudFirestore {
 
   CollectionReference collectionRef (String name) {
         
-    String collName = collectionNameFromTableName(name) + _realm;
-    print("target collection => $collName");
-    return _store.collection(collName);
+    // String collName = collectionNameFromTableName(name) + _realm;
+    String path = _docOrCollectionPath(name);
+    print("target collection path => $path");
+    return _store.collection(path);
   }  
 
   /// Write to or delete any document on firestore when you have the document reference.
