@@ -44,42 +44,38 @@ class CjCloudFirestore {
   } 
 
   String _docOrCollectionPath(String tableName, {String? docId}) {
-    if (docId != null) {
-      docId = "$docId";
-    } else {
-      docId = "";
-    }
+    
+    docId ??= "";
 
     final isComplex = tableName.indexOf("/") >= 0;
 
-    String collName = "";
+    String path = "";
 
     if (isComplex) {
       tableName.split("/").asMap().forEach((k, v) {
         if (k % 2 == 1) {
           // If it's an odd index, it's a document id, leave unchanged.
-          collName += "/" + v;
+          path += "/" + v;
         } else {
           // If it is an even index, it's a collection name, append the realm suffix only if it is the root collection.
           String loopCollName = collectionNameFromTableName(v);
 
           if (k > 0) {
             print("$v is a sub collection");
-            collName += "/" + loopCollName;
+            path += "/" + loopCollName;
           } else {
             print("$v is the root collection");
-            collName += loopCollName + _realm;
+            path += loopCollName + _realm;
           }
         }
       });
     } else {
-      collName = collectionNameFromTableName(tableName) + _realm;
-
-      if (docId.isNotEmpty) collName += "/" + docId;
+      path = collectionNameFromTableName(tableName) + _realm;
     }
+    if (docId.isNotEmpty) path += "/" + docId;
 
-    print("@_docOrCollectionPath $tableName & docId $docId <=> $collName");
-    return collName;
+    print("@_docOrCollectionPath $tableName & docId $docId <=> $path");
+    return path;
   }
 
   DocumentReference? documentRef(String tableName) {
