@@ -25,7 +25,7 @@ class CjCloudFirestore {
   String collectionNameFromTableName (String tableName) {
         
     String collName = "";
-    final String pattern = r"^[a-z]+$"; 
+    final String pattern = r"^[a-z\_]+$"; 
     final regexp = RegExp(pattern);
 
     tableName.split("").forEach((char) {
@@ -80,6 +80,12 @@ class CjCloudFirestore {
 
     print("@_docOrCollectionPath $tableName & docId $docId <=> $collName");
     return collName;
+  }
+
+  DocumentReference? documentRef(String tableName) {
+    String path = _docOrCollectionPath(tableName);
+
+    return _store.doc(path);
   }
 
   CollectionReference collectionRef (String name) {
