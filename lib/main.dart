@@ -10,6 +10,9 @@ class CjCloudFirestore {
   CjCloudFirestore(String realm, [String port = "8080"]) {
     CjCloudFirestore._realm = realm;
 
+    // Empty realm is live realm, anything else is test/dev. (_test).
+    if (realm.isEmpty) return;
+    
     final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
 
     _store.settings = Settings(
