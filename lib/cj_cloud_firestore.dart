@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class CjCloudFirestore {
 
@@ -14,7 +15,8 @@ class CjCloudFirestore {
     // Empty realm is live realm, anything else is test/dev. (_test).
     if (realm.isNotEmpty) {
       
-      final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
+      final localhost = "localhost";
+      final String host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
 
       _store.settings = Settings(
         host: "$host:$port",
