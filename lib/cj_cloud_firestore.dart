@@ -18,19 +18,23 @@ class CjCloudFirestore {
       final localhost = "localhost";
       final String host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
 
-      _store.settings = Settings(
-        host: "$host:$port",
-        sslEnabled: false,
-        persistenceEnabled: false,
-      );
-      _store.useFirestoreEmulator(host, port);
-      print("initialized cj cloud firestore to use emulator: realm: $realm, port $port");
+      try {
+        _store.settings = Settings(
+          host: "$host:$port",
+          sslEnabled: false,
+          persistenceEnabled: false
+        );
+        _store.useFirestoreEmulator(host, port);
+        print("initialized cj cloud firestore to use emulator: realm: $realm, port $port");
+      } catch (err) {
+        debugPrint("error @ cCjCloudFirestore constructor");
+      }
     } else {
       print("initialized cj cloud firestore.");
     }
   }
 
-  static late final String _realm;  
+  static late String _realm;  
   static DocumentSnapshot? userDocSnapshot;
   static DocumentReference? userDocReference;
 
