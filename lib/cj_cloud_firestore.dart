@@ -7,19 +7,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CjCloudFirestore {
 
-  CjCloudFirestore(String realm, [String port = "8080"]) {
+  CjCloudFirestore(String realm, [int port = 8080]) {
     CjCloudFirestore._realm = realm;
 
+    print("initializing cj cloud firestore: realm: $realm, port $port");
     // Empty realm is live realm, anything else is test/dev. (_test).
-    if (realm.isEmpty) return;
-    
-    final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
+    if (realm.isNotEmpty) {
+      
+      final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
 
-    _store.settings = Settings(
-      host: "$host:$port",
-      sslEnabled: false,
-      persistenceEnabled: false,
-    );
+      _store.settings = Settings(
+        host: "$host:$port",
+        sslEnabled: false,
+        persistenceEnabled: false,
+      );
+      _store.useFirestoreEmulator(host, port);
+      print("initialized cj cloud firestore to use emulator: realm: $realm, port $port");
+    } else {
+      print("initialized cj cloud firestore.");
+    }
   }
 
   static late final String _realm;  
