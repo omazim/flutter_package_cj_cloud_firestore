@@ -7,10 +7,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CjCloudFirestore {
 
-  CjCloudFirestore(String realm) {
+  CjCloudFirestore(String realm, [String port = "8080"]) {
     CjCloudFirestore._realm = realm;
 
-    final String port = "8080";
     final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
 
     _store.settings = Settings(
