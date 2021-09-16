@@ -1,23 +1,30 @@
 library cj_cloud_firestore;
 
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CjCloudFirestore {
 
-  CjCloudFirestore.init(String realm) {
+  CjCloudFirestore(String realm) {
     CjCloudFirestore._realm = realm;
-  }
 
-  CjCloudFirestore();
+    final String port = "8080";
+    final String host = Platform.isAndroid ? "10.0.2.2": "localhost";
+
+    _store.settings = Settings(
+      host: "$host:$port",
+      sslEnabled: false,
+      persistenceEnabled: false,
+    );
+  }
 
   static late final String _realm;  
   static DocumentSnapshot? userDocSnapshot;
   static DocumentReference? userDocReference;
 
-  FirebaseFirestore _store = FirebaseFirestore.instance;
+  final FirebaseFirestore _store = FirebaseFirestore.instance;
 
   FirebaseFirestore get store => _store;
   WriteBatch get batch => _store.batch();  
