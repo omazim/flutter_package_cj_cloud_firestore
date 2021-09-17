@@ -12,6 +12,12 @@ class CjCloudFirestore {
     CjCloudFirestore._realm = realm;
 
     print("initializing cj cloud firestore: realm: $realm, port $port");
+
+    if (CjCloudFirestore._hasInitialized) {
+      debugPrint("cj cloud firestore already initialized.");
+      return;
+    }
+    
     // Empty realm is live realm, anything else is test/dev. (_test).
     if (realm.isNotEmpty) {
       
@@ -19,22 +25,27 @@ class CjCloudFirestore {
       final String host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
 
       try {
-        _store.settings = Settings(
-          host: "$host:$port",
-          sslEnabled: false,
-          persistenceEnabled: false
-        );
-        _store.useFirestoreEmulator(host, port);
+        if (kIsWeb) {
+          _store.useFirestoreEmulator(host, port);
+        } else {
+          _store.settings = Settings(
+            host: "$host:$port",
+            sslEnabled: false,
+            persistenceEnabled: false
+          );
+        }
+        CjCloudFirestore._hasInitialized = true;
         print("initialized cj cloud firestore to use emulator: realm: $realm, port $port");
       } catch (err) {
-        debugPrint("error @ cCjCloudFirestore constructor");
+        debugPrint("error @ cCjCloudFirestore constructor: $err");
       }
     } else {
       print("initialized cj cloud firestore.");
     }
   }
 
-  static late String _realm;  
+  static late String _realm;
+  static bool _hasInitialized = false;
   static DocumentSnapshot? userDocSnapshot;
   static DocumentReference? userDocReference;
 
