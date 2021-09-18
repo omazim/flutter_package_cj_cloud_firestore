@@ -8,51 +8,82 @@ import 'package:flutter/foundation.dart';
 
 class CjCloudFirestore {
 
-  CjCloudFirestore(String realm, [int port = 8080]) {
-    CjCloudFirestore._realm = realm;
+  CjCloudFirestore(String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) {
+    _realm = realm;
+    _port = port;
+    _useEmulatorForTestRealm = useEmulatorForTestRealm;
 
     print("initializing cj cloud firestore: realm: $realm, port $port");
 
-    if (CjCloudFirestore._hasInitialized) {
+    if (_hasInitialized) {
       debugPrint("cj cloud firestore already initialized.");
       return;
     }
-    
-    // Empty realm is live realm, anything else is test/dev. (_test).
-    if (realm.isNotEmpty) {
-      
-      final localhost = "localhost";
-      final String host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
 
-      try {
-        if (kIsWeb) {
-          _store.useFirestoreEmulator(host, port);
-        } else {
-          _store.settings = Settings(
-            host: "$host:$port",
-            sslEnabled: false,
-            persistenceEnabled: false
-          );
-        }
-        CjCloudFirestore._hasInitialized = true;
-        print("initialized cj cloud firestore to use emulator: realm: $realm, port $port");
-      } catch (err) {
-        debugPrint("error @ cCjCloudFirestore constructor: $err");
-      }
+    String localhost = "localhost";
+    // Empty realm is live realm, anything else is test/dev. (_test).
+    if (realm.isEmpty) {
+      // Live/production.        
+      _persistenceEnabled = true;
+      _sslEnabled = true;
+      
     } else {
-      print("initialized cj cloud firestore.");
+      _persistenceEnabled = true;
+      _sslEnabled = !_useEmulatorForTestRealm;      
+      _host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
+      _hostAndPort = "$_host:$_port";                
+    }
+    
+    try {
+      _applySettings();
+      print("initialized cj cloud firestore:\nusing emulator? $_useEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
+    } catch (err) {
+      debugPrint("error @ cCjCloudFirestore constructor: $err");
     }
   }
 
   static late String _realm;
   static bool _hasInitialized = false;
-  static DocumentSnapshot? userDocSnapshot;
-  static DocumentReference? userDocReference;
+  static late int _port;
+  static late String _host;
+  static String? _hostAndPort;
 
+  static bool _useEmulatorForTestRealm = false;
+  static late bool _sslEnabled;
+  static late bool _persistenceEnabled;
+  
   final FirebaseFirestore _store = FirebaseFirestore.instance;
 
   FirebaseFirestore get store => _store;
   WriteBatch get batch => _store.batch();  
+
+  Settings get settings => _store.settings;
+
+  void _applySettings () {
+    
+    if (_useEmulatorForTestRealm) _store.useFirestoreEmulator(_host, _port);
+
+    if (kIsWeb) {
+            
+      try {
+        _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
+      } catch (err) {
+        print("@_applySettings web persistence: $err");
+      }
+    }
+    try {
+      _store.settings = Settings(
+        host: _hostAndPort,
+        sslEnabled: _sslEnabled,
+        persistenceEnabled: _persistenceEnabled
+      );
+    } catch (err) {
+      print("@_applySettings settings: $err");
+    } finally {
+    
+      CjCloudFirestore._hasInitialized = true;
+    }
+  }
 
   String collectionNameFromTableName (String tableName) {
         
