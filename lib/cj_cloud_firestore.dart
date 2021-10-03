@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 
 class CjCloudFirestore {
 
-  CjCloudFirestore(String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) {
+  CjCloudFirestore.init(String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) {
     _realm = realm;
     _port = port;
     _useEmulatorForTestRealm = useEmulatorForTestRealm;
