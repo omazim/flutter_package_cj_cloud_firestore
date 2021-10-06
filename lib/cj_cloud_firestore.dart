@@ -15,7 +15,7 @@ class CjCloudFirestore {
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
   CjCloudFirestore.init(String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) {
-    _realm = realm;
+    _realm = useEmulatorForTestRealm ? "": realm;
     _port = port;
     _useEmulatorForTestRealm = useEmulatorForTestRealm;
 
