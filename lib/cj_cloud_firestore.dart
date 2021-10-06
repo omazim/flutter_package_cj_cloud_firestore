@@ -14,7 +14,7 @@ class CjCloudFirestore {
   /// String [realm] Indicating realm (live or test).
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
-  CjCloudFirestore.init(String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) {
+  Future<void> init (String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) async {
     _realm = useEmulatorForTestRealm ? "": realm;
     _port = port;
     _useEmulatorForTestRealm = useEmulatorForTestRealm;
@@ -41,7 +41,7 @@ class CjCloudFirestore {
     }
     
     try {
-      _applySettings();
+      await _applySettings();
       print("initialized cj cloud firestore:\nusing emulator? $_useEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
     } catch (err) {
       debugPrint("error @ cCjCloudFirestore constructor: $err");
@@ -65,14 +65,14 @@ class CjCloudFirestore {
 
   Settings get settings => _store.settings;
 
-  void _applySettings () {
+  Future<void> _applySettings () async {
     
     if (_useEmulatorForTestRealm) _store.useFirestoreEmulator(_host, _port);
 
     if (kIsWeb) {
             
       try {
-        _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
+        await _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
       } catch (err) {
         print("@_applySettings web persistence: $err");
       }
