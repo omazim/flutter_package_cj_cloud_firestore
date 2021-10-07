@@ -31,7 +31,7 @@ class CjCloudFirestore {
   /// String [realm] Indicating realm (live or test).
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
-  Future<void> init (String realm, {int port = 8080, bool useEmulatorForTestRealm = false, bool isRunningAndroidEmulator = false}) async {
+  Future<void> init (String realm, {String host: "", int port = 8080, bool useEmulatorForTestRealm = false, bool isRunningAndroidEmulator = false}) async {
     _realm = useEmulatorForTestRealm ? "": realm;
     _port = port;
     _useFirestoreEmulatorForTestRealm = useEmulatorForTestRealm;
@@ -44,7 +44,7 @@ class CjCloudFirestore {
       return;
     }
 
-    String localhost = "localhost";
+    String localhost = host.isEmpty ? "localhost": host;
     // Empty realm is live realm, anything else is test/dev. (_test).
     // However, even though test realm was passed, if we are using firestore emulator, then it will be overridden to live realm, because there's no point having _test-suffixed collections on the local emulator. Using local emulator implies testing/development.
     _persistenceEnabled = true;
@@ -54,10 +54,9 @@ class CjCloudFirestore {
       _sslEnabled = true;
       
     } else {
-      _persistenceEnabled = true;
       _sslEnabled = !_useFirestoreEmulatorForTestRealm;
     }
-    
+
     if (_isRunningAndroidEmulator) {
       _host = "10.0.2.2";
     } else {
@@ -70,7 +69,7 @@ class CjCloudFirestore {
       await _applySettings();
       print("initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
     } catch (err) {
-      debugPrint("error @ cCjCloudFirestore constructor: $err");
+      debugPrint("error @ CjCloudFirestore constructor: $err");
     }
   }
 
@@ -95,11 +94,9 @@ class CjCloudFirestore {
           persistenceEnabled: _persistenceEnabled
         );
       }
+      CjCloudFirestore._hasInitialized = true;
     } catch (err) {
       print("@_applySettings settings: $err");
-    } finally {
-    
-      CjCloudFirestore._hasInitialized = true;
     }
   }
 
