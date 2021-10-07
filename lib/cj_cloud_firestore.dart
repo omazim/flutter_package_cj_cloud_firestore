@@ -55,9 +55,7 @@ class CjCloudFirestore {
       _persistenceEnabled = true;
       _sslEnabled = !_useFirestoreEmulatorForTestRealm;      
       
-      if (kIsWeb) {
-        _host = localhost;
-      } else if (_isRunningAndroidEmulator) {
+      if (_isRunningAndroidEmulator) {
         _host = "10.0.2.2";
       } else {
         _host = localhost;
