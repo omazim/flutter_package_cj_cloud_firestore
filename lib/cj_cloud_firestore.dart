@@ -16,7 +16,8 @@ class CjCloudFirestore {
   static late String _host;
   static String? _hostAndPort;
 
-  static bool _useEmulatorForTestRealm = false;
+  static bool _isRunningAndroidEmulator = false;
+  static bool _useFirestoreEmulatorForTestRealm = false;
   static late bool _sslEnabled;
   static late bool _persistenceEnabled;
   
@@ -30,10 +31,11 @@ class CjCloudFirestore {
   /// String [realm] Indicating realm (live or test).
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
-  Future<void> init (String realm, [int port = 8080, bool useEmulatorForTestRealm = false]) async {
+  Future<void> init (String realm, {int port = 8080, bool useEmulatorForTestRealm = false, bool isRunningAndroidEmulator = false}) async {
     _realm = useEmulatorForTestRealm ? "": realm;
     _port = port;
-    _useEmulatorForTestRealm = useEmulatorForTestRealm;
+    _useFirestoreEmulatorForTestRealm = useEmulatorForTestRealm;
+    _isRunningAndroidEmulator = isRunningAndroidEmulator;
 
     print("initializing cj cloud firestore: realm: $realm, port $port");
 
@@ -51,14 +53,22 @@ class CjCloudFirestore {
       
     } else {
       _persistenceEnabled = true;
-      _sslEnabled = !_useEmulatorForTestRealm;      
-      _host = kIsWeb ? localhost: (Platform.isAndroid ? "10.0.2.2": localhost);
+      _sslEnabled = !_useFirestoreEmulatorForTestRealm;      
+      
+      if (kIsWeb) {
+        _host = localhost;
+      } else if (_isRunningAndroidEmulator) {
+        _host = "10.0.2.2";
+      } else {
+        _host = localhost;
+      }
+
       _hostAndPort = "$_host:$_port";                
     }
     
     try {
       await _applySettings();
-      print("initialized cj cloud firestore:\nusing emulator? $_useEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
+      print("initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
     } catch (err) {
       debugPrint("error @ cCjCloudFirestore constructor: $err");
     }
@@ -76,7 +86,7 @@ class CjCloudFirestore {
     }
     try {
       // Apply settings only when running on emulator.      
-      if (_useEmulatorForTestRealm) {
+      if (_useFirestoreEmulatorForTestRealm) {
 
         _store.useFirestoreEmulator(_host, _port);
         _store.settings = Settings(
