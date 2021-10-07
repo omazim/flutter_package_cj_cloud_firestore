@@ -9,6 +9,22 @@ import 'package:flutter/foundation.dart';
 class CjCloudFirestore {
 
   CjCloudFirestore();
+  
+  static late String _realm;
+  static bool _hasInitialized = false;
+  static late int _port;
+  static late String _host;
+  static String? _hostAndPort;
+
+  static bool _useEmulatorForTestRealm = false;
+  static late bool _sslEnabled;
+  static late bool _persistenceEnabled;
+  
+  final FirebaseFirestore _store = FirebaseFirestore.instance;
+
+  FirebaseFirestore get store => _store;
+  WriteBatch get batch => _store.batch();  
+  Settings get settings => _store.settings;
 
   /// Initialize static members that determine how Cloud Firestore will work.
   /// String [realm] Indicating realm (live or test).
@@ -48,26 +64,7 @@ class CjCloudFirestore {
     }
   }
 
-  static late String _realm;
-  static bool _hasInitialized = false;
-  static late int _port;
-  static late String _host;
-  static String? _hostAndPort;
-
-  static bool _useEmulatorForTestRealm = false;
-  static late bool _sslEnabled;
-  static late bool _persistenceEnabled;
-  
-  final FirebaseFirestore _store = FirebaseFirestore.instance;
-
-  FirebaseFirestore get store => _store;
-  WriteBatch get batch => _store.batch();  
-
-  Settings get settings => _store.settings;
-
   Future<void> _applySettings () async {
-    
-    if (_useEmulatorForTestRealm) _store.useFirestoreEmulator(_host, _port);
 
     if (kIsWeb) {
             
@@ -78,11 +75,16 @@ class CjCloudFirestore {
       }
     }
     try {
-      _store.settings = Settings(
-        host: _hostAndPort,
-        sslEnabled: _sslEnabled,
-        persistenceEnabled: _persistenceEnabled
-      );
+      // Apply settings only when running on emulator.      
+      if (_useEmulatorForTestRealm) {
+
+        _store.useFirestoreEmulator(_host, _port);
+        _store.settings = Settings(
+          host: _hostAndPort,
+          sslEnabled: _sslEnabled,
+          persistenceEnabled: _persistenceEnabled
+        );
+      }
     } catch (err) {
       print("@_applySettings settings: $err");
     } finally {
