@@ -46,23 +46,25 @@ class CjCloudFirestore {
 
     String localhost = "localhost";
     // Empty realm is live realm, anything else is test/dev. (_test).
+    // However, even though test realm was passed, if we are using firestore emulator, then it will be overridden to live realm, because there's no point having _test-suffixed collections on the local emulator. Using local emulator implies testing/development.
+    _persistenceEnabled = true;
+
     if (realm.isEmpty) {
-      // Live/production.        
-      _persistenceEnabled = true;
+      // Live/production.      
       _sslEnabled = true;
       
     } else {
       _persistenceEnabled = true;
-      _sslEnabled = !_useFirestoreEmulatorForTestRealm;      
-      
-      if (_isRunningAndroidEmulator) {
-        _host = "10.0.2.2";
-      } else {
-        _host = localhost;
-      }
-
-      _hostAndPort = "$_host:$_port";                
+      _sslEnabled = !_useFirestoreEmulatorForTestRealm;
     }
+    
+    if (_isRunningAndroidEmulator) {
+      _host = "10.0.2.2";
+    } else {
+      _host = localhost;
+    }
+
+    _hostAndPort = "$_host:$_port";                
     
     try {
       await _applySettings();
