@@ -74,15 +74,7 @@ class CjCloudFirestore {
   }
 
   Future<void> _applySettings () async {
-
-    if (kIsWeb) {
-            
-      try {
-        await _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
-      } catch (err) {
-        print("@_applySettings web persistence: $err");
-      }
-    }
+    
     try {
       // Apply settings only when running on emulator.      
       if (_useFirestoreEmulatorForTestRealm) {
@@ -96,7 +88,15 @@ class CjCloudFirestore {
       }
       CjCloudFirestore._hasInitialized = true;
     } catch (err) {
-      print("@_applySettings settings: $err");
+      print("error @_applySettings settings: $err");
+    }
+    if (kIsWeb) {
+            
+      try {
+        await _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
+      } catch (err) {
+        print("error @_applySettings web persistence: $err");
+      }
     }
   }
 
@@ -149,6 +149,7 @@ class CjCloudFirestore {
       });
     } else {
       path = collectionNameFromTableName(tableName) + _realm;
+      print("path is NOT complex, realm is $_realm");
     }
     
     if (docId.isNotEmpty) path += "/" + docId;
@@ -493,3 +494,17 @@ enum MyFirestoreFilterOp {
   whereNotIn,
   isNull
 }
+
+// final modelsRef = FirebaseFirestore
+//      .instance
+//      .collection('models')
+//      .withConverter<Model>(
+//        fromFirestore: (snapshot, _) => Model.fromJson(snapshot.data()!),
+//        toFirestore: (model, _) => model.toJson(),
+//      );
+
+//  Future<void> main() async {
+//    // Writes now take a Model as parameter instead of a Map
+//    await modelsRef.add(Model());
+//    final Model model = await modelsRef.doc('123').get().then((s) => s.data());
+//  }
