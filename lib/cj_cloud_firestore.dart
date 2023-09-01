@@ -7,9 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class CjCloudFirestore {
-
   CjCloudFirestore();
-  
+
   static late String _realm;
   static bool _hasInitialized = false;
   static late int _port;
@@ -20,19 +19,23 @@ class CjCloudFirestore {
   static bool _useFirestoreEmulatorForTestRealm = false;
   static late bool _sslEnabled;
   static late bool _persistenceEnabled;
-  
+
   final FirebaseFirestore _store = FirebaseFirestore.instance;
 
   FirebaseFirestore get store => _store;
-  WriteBatch get batch => _store.batch();  
+  WriteBatch get batch => _store.batch();
   Settings get settings => _store.settings;
 
   /// Initialize static members that determine how Cloud Firestore will work.
   /// String [realm] Indicating realm (live or test).
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
-  Future<void> init (String realm, {String host: "", int port = 8080, bool useEmulatorForTestRealm = false, bool isRunningAndroidEmulator = false}) async {
-    _realm = useEmulatorForTestRealm ? "": realm;
+  Future<void> init(String realm,
+      {String host: "",
+      int port = 8080,
+      bool useEmulatorForTestRealm = false,
+      bool isRunningAndroidEmulator = false}) async {
+    _realm = useEmulatorForTestRealm ? "" : realm;
     _port = port;
     _useFirestoreEmulatorForTestRealm = useEmulatorForTestRealm;
     _isRunningAndroidEmulator = isRunningAndroidEmulator;
@@ -44,15 +47,14 @@ class CjCloudFirestore {
       return;
     }
 
-    String localhost = host.isEmpty ? "localhost": host;
+    String localhost = host.isEmpty ? "localhost" : host;
     // Empty realm is live realm, anything else is test/dev. (_test).
     // However, even though test realm was passed, if we are using firestore emulator, then it will be overridden to live realm, because there's no point having _test-suffixed collections on the local emulator. Using local emulator implies testing/development.
     _persistenceEnabled = true;
 
     if (realm.isEmpty) {
-      // Live/production.      
+      // Live/production.
       _sslEnabled = true;
-      
     } else {
       _sslEnabled = !_useFirestoreEmulatorForTestRealm;
     }
@@ -63,66 +65,61 @@ class CjCloudFirestore {
       _host = localhost;
     }
 
-    _hostAndPort = "$_host:$_port";                
-    
+    _hostAndPort = "$_host:$_port";
+
     try {
       await _applySettings();
-      print("initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
+      print(
+          "initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
     } catch (err) {
       debugPrint("error @ CjCloudFirestore constructor: $err");
     }
   }
 
-  Future<void> _applySettings () async {
-    
+  Future<void> _applySettings() async {
     try {
-      // Apply settings only when running on emulator.      
+      // Apply settings only when running on emulator.
       if (_useFirestoreEmulatorForTestRealm) {
-
         _store.useFirestoreEmulator(_host, _port);
         _store.settings = Settings(
-          host: _hostAndPort,
-          sslEnabled: _sslEnabled,
-          persistenceEnabled: _persistenceEnabled
-        );
+            host: _hostAndPort,
+            sslEnabled: _sslEnabled,
+            persistenceEnabled: _persistenceEnabled);
       }
       CjCloudFirestore._hasInitialized = true;
     } catch (err) {
       print("error @_applySettings settings: $err");
     }
     if (kIsWeb) {
-            
       try {
-        await _store.enablePersistence(PersistenceSettings(synchronizeTabs: true));      
+        await _store
+            .enablePersistence(PersistenceSettings(synchronizeTabs: true));
       } catch (err) {
         print("error @_applySettings web persistence: $err");
       }
     }
   }
 
-  String collectionNameFromTableName (String tableName) {
-        
+  String collectionNameFromTableName(String tableName) {
     String collName = "";
-    final String pattern = r"^[a-z\_]+$"; 
+    final String pattern = r"^[a-z\_]+$";
     final regexp = RegExp(pattern);
 
     tableName.split("").forEach((char) {
-        
       final lCase = char.toLowerCase();
 
       // if (/[a-z]/.test(char)) {
       if (regexp.hasMatch(char)) {
-          collName += lCase;
+        collName += lCase;
       } else {
-          collName += collName.isNotEmpty ? "_" + lCase: lCase;
+        collName += collName.isNotEmpty ? "_" + lCase : lCase;
       }
     });
 
     return collName;
-  } 
+  }
 
   String _docOrCollectionPath(String tableName, {String? docId}) {
-    
     docId ??= "";
 
     final isComplex = tableName.indexOf("/") >= 0;
@@ -140,7 +137,7 @@ class CjCloudFirestore {
 
           if (k > 0) {
             print("$v is a sub collection");
-            path += "/" + loopCollName;
+            path += "/" + loopCollName + _realm;
           } else {
             print("$v is the root collection");
             path += loopCollName + _realm;
@@ -151,7 +148,7 @@ class CjCloudFirestore {
       path = collectionNameFromTableName(tableName) + _realm;
       print("path is NOT complex, realm is $_realm");
     }
-    
+
     if (docId.isNotEmpty) path += "/" + docId;
     print("@_docOrCollectionPath: doc id: $docId,\nfinal path: $path");
     // print("@_docOrCollectionPath $tableName & docId $docId <=> $path");
@@ -164,25 +161,24 @@ class CjCloudFirestore {
     return _store.doc(path);
   }
 
-  CollectionReference collectionRef (String name) {
-        
+  CollectionReference collectionRef(String name) {
     // String collName = collectionNameFromTableName(name) + _realm;
     String path = _docOrCollectionPath(name);
     print("target collection path => $path");
     return _store.collection(path);
-  }  
+  }
 
   /// Write to or delete any document on firestore when you have the document reference.
   /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<void> updateDocWithRef (DocumentReference docRef, dynamic data, {bool doUpdate: true, bool isDataSerializable: true}) async {    
+  Future<void> updateDocWithRef(DocumentReference docRef, dynamic data,
+      {bool doUpdate: true, bool isDataSerializable: true}) async {
+    Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
 
-    Map<String, dynamic> dataMap = isDataSerializable ? data.toJson(): data;
-    
     try {
-      if (doUpdate) {  
-        await docRef.update(dataMap);  
+      if (doUpdate) {
+        await docRef.update(dataMap);
       } else {
-        await docRef.delete();        
+        await docRef.delete();
       }
     } catch (err) {
       print("error @updateDocument $err.");
@@ -191,22 +187,22 @@ class CjCloudFirestore {
 
   /// Write to any document on firestore when you have the document id OR are creating a new document.
   /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<bool> updateDocInCollection (String collName, dynamic data, {String docId:"", bool isDataSerializable: true}) async {
-    
-    Map<String, dynamic> dataMap = isDataSerializable ? data.toJson(): data;    
+  Future<bool> updateDocInCollection(String collName, dynamic data,
+      {String docId: "", bool isDataSerializable: true}) async {
+    Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
     CollectionReference collRef = collectionRef(collName);
     bool updated = false;
     try {
-    // if (gHasConnectivity) {
+      // if (gHasConnectivity) {
       if (docId.isEmpty) {
         await collRef.doc().set(dataMap);
       } else {
         await collRef.doc(docId).update(dataMap);
       }
-    // } else {
-    //   usersCollRef?.doc(currentUserId).update(json);
-    // }
-    updated = true;
+      // } else {
+      //   usersCollRef?.doc(currentUserId).update(json);
+      // }
+      updated = true;
     } catch (err) {
       print("Error @updateDocInCollection: $err");
     }
@@ -215,22 +211,23 @@ class CjCloudFirestore {
   }
 
   /// Write to any document on firestore when you have a data map and the document id OR are creating a new document.
-  Future<bool> updateDocInCollectionFromMap (String collName, Map<String, dynamic> dataMap, {String docId:""}) async {
-    
+  Future<bool> updateDocInCollectionFromMap(
+      String collName, Map<String, dynamic> dataMap,
+      {String docId: ""}) async {
     CollectionReference? collRef = collectionRef(collName);
     bool updated = false;
 
     try {
-    // if (gHasConnectivity) {
+      // if (gHasConnectivity) {
       if (docId.isEmpty) {
         await collRef.doc().set(dataMap);
       } else {
         await collRef.doc(docId).update(dataMap);
       }
-    // } else {
-    //   usersCollRef?.doc(currentUserId).update(json);
-    // }
-    updated = true;
+      // } else {
+      //   usersCollRef?.doc(currentUserId).update(json);
+      // }
+      updated = true;
     } catch (err) {
       print("Error @updateDocInCollectionFromMap: $err");
     }
@@ -241,42 +238,47 @@ class CjCloudFirestore {
   /// Write to or delete any document on firestore.
   /// If data is not a serializable class, then it must be a map string dynamic.
   /// If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<bool> touchDocument (String collName, {dynamic data, String docId: "", bool doWrite: true, bool isDataSerializable: true}) async {
-    
+  Future<bool> touchDocument(String collName,
+      {dynamic data,
+      String docId: "",
+      bool doWrite: true,
+      bool isDataSerializable: true}) async {
     CollectionReference ref = collectionRef(collName);
     bool touched = false;
 
-    if (!doWrite && docId.isEmpty) throw "Doc Id must be provided when deleting a document.";
+    if (!doWrite && docId.isEmpty)
+      throw "Doc Id must be provided when deleting a document.";
 
     try {
       if (doWrite) {
-        Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
-        
+        Map<String, dynamic> dataMap =
+            isDataSerializable ? data.toJson() : data;
+
         // Todo: Let's have a timestamp on the server for the benefits outlined in firestore documentation.
         // json["Timestamp"] = FirebaseFirestore.in
         if (docId.isEmpty) {
           // if (gHasConnectivity) {
-            await ref.add(dataMap);
+          await ref.add(dataMap);
           // } else {
           //   ref?.add(json);
           // }
         } else {
           // if (gHasConnectivity) {
-            await ref.doc(docId).set(dataMap, SetOptions(merge: true));
+          await ref.doc(docId).set(dataMap, SetOptions(merge: true));
           // } else {
           //   ref?.doc(docId).set(json, SetOptions(merge: true));
           // }
         }
       } else {
         // if (gHasConnectivity) {
-          await ref.doc(docId).delete();
+        await ref.doc(docId).delete();
         // } else {
         //   ref?.doc(docId).delete();
         // }
       }
       touched = true;
     } catch (err) {
-      print("error @touchDocumentInCollection $err.");      
+      print("error @touchDocumentInCollection $err.");
     }
 
     return touched;
@@ -285,7 +287,8 @@ class CjCloudFirestore {
   /// Read a collection by applying the query params (if any).
   /// Return a list of the documents or document references depending on arguments.
   /// Returns an empty list if no documents in the collection match the query.
-  Future<List<dynamic>> readACollection(String tableName, {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
+  Future<List<dynamic>> readACollection(String tableName,
+      {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
     queryParam = queryParam ??= MyFirestoreQueryParam()..orderAsc = true;
 
     // final collRef = collectionRef(tableName);// Oma fixed this line 22 Aug 2021.
@@ -375,7 +378,9 @@ class CjCloudFirestore {
       print("read ${snapshot.docs.length} docs from collection ${collRef.id}");
 
       if (snapshot.docs.length > 0) {
-        final list = getDocSnapshots ? snapshot.docs: snapshot.docs.map((doc) => doc.data()).toList();
+        final list = getDocSnapshots
+            ? snapshot.docs
+            : snapshot.docs.map((doc) => doc.data()).toList();
 
         return list;
       } else {
@@ -390,8 +395,8 @@ class CjCloudFirestore {
 
   /// Return a single document snapshot for the passed collection and doc id.
   /// Returns null if no document bears that id.
-  Future<dynamic> readADocumentById(String tableName, String docId, {bool getDocSnapshot: false}) async {
-    
+  Future<dynamic> readADocumentById(String tableName, String docId,
+      {bool getDocSnapshot: false}) async {
     final String path = _docOrCollectionPath(tableName, docId: docId);
     // DocumentSnapshot? snapshot = await collectionRef(tableName).doc(docId).get();
     DocumentSnapshot? snapshot = await store.doc(path).get();
@@ -404,17 +409,20 @@ class CjCloudFirestore {
   }
 
   /// Return a single document for the passed collection and query.
-  Future<dynamic> readADocumentByQuery(String tableName, MyFirestoreQueryParam queryParam, {bool getDocSnapshot: false}) async {
+  Future<dynamic> readADocumentByQuery(
+      String tableName, MyFirestoreQueryParam queryParam,
+      {bool getDocSnapshot: false}) async {
     queryParam = queryParam;
 
-    final listOfDocsOrSnapshots = await readACollection(tableName, queryParam: queryParam, getDocSnapshots: getDocSnapshot);
-    
+    final listOfDocsOrSnapshots = await readACollection(tableName,
+        queryParam: queryParam, getDocSnapshots: getDocSnapshot);
+
     if (listOfDocsOrSnapshots.length == 0) return null;
 
     return listOfDocsOrSnapshots[0];
   }
 
-  Future<bool> batchWrite (List<MyBatchData> dataArray) async {
+  Future<bool> batchWrite(List<MyBatchData> dataArray) async {
     final WriteBatch b = batch;
     print("writing ${dataArray.length} items in batch...");
     dataArray.forEach((data) {
@@ -423,11 +431,13 @@ class CjCloudFirestore {
       final bool isEven = path.split("/").length % 2 == 0;
       final String docId = data.docId;
       late final DocumentReference ref;
-      
+
       if (isEven) {
         ref = _store.doc(path);
       } else {
-        ref = docId.isEmpty ? _store.collection(path).doc() : _store.collection(path).doc(docId);
+        ref = docId.isEmpty
+            ? _store.collection(path).doc()
+            : _store.collection(path).doc(docId);
       }
 
       switch (data.action.toLowerCase()) {
@@ -457,7 +467,7 @@ class CjCloudFirestore {
   }
 }
 
-class MyFirestoreQueryParam {  
+class MyFirestoreQueryParam {
   MyFirestoreQueryParam();
   String orderBy = "";
   bool orderAsc = true;
