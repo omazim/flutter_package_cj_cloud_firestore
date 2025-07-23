@@ -30,11 +30,13 @@ class CjCloudFirestore {
   /// String [realm] Indicating realm (live or test).
   /// int [port] Port to use for local emulator. Defaults to 8080.
   /// bool [useEmulatorForTestRealm] Indicates whether to use the emulator while developing. Even during development, we could still opt to use the live firestore by suffixing names of collections for testing purposes.
-  Future<void> init(String realm,
-      {String host: "",
-      int port = 8080,
-      bool useEmulatorForTestRealm = false,
-      bool isRunningAndroidEmulator = false}) async {
+  Future<void> init(
+    String realm, {
+    String host = "",
+    int port = 8080,
+    bool useEmulatorForTestRealm = false,
+    bool isRunningAndroidEmulator = false,
+  }) async {
     _realm = useEmulatorForTestRealm ? "" : realm;
     _port = port;
     _useFirestoreEmulatorForTestRealm = useEmulatorForTestRealm;
@@ -70,7 +72,8 @@ class CjCloudFirestore {
     try {
       await _applySettings();
       print(
-          "initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled");
+        "initialized cj cloud firestore:\nusing emulator? $_useFirestoreEmulatorForTestRealm\nrealm: $_realm\nport: $port\nhost and port: $_hostAndPort\nssl enabled? $_sslEnabled:\npersistence enabled? $_persistenceEnabled",
+      );
     } catch (err) {
       debugPrint("error @ CjCloudFirestore constructor: $err");
     }
@@ -82,9 +85,10 @@ class CjCloudFirestore {
       if (_useFirestoreEmulatorForTestRealm) {
         _store.useFirestoreEmulator(_host, _port);
         _store.settings = Settings(
-            host: _hostAndPort,
-            sslEnabled: _sslEnabled,
-            persistenceEnabled: _persistenceEnabled);
+          host: _hostAndPort,
+          sslEnabled: _sslEnabled,
+          persistenceEnabled: _persistenceEnabled,
+        );
       }
       CjCloudFirestore._hasInitialized = true;
     } catch (err) {
@@ -92,8 +96,9 @@ class CjCloudFirestore {
     }
     if (kIsWeb) {
       try {
-        await _store
-            .enablePersistence(PersistenceSettings(synchronizeTabs: true));
+        await _store.enablePersistence(
+          PersistenceSettings(synchronizeTabs: true),
+        );
       } catch (err) {
         print("error @_applySettings web persistence: $err");
       }
@@ -170,8 +175,12 @@ class CjCloudFirestore {
 
   /// Write to or delete any document on firestore when you have the document reference.
   /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<void> updateDocWithRef(DocumentReference docRef, dynamic data,
-      {bool doUpdate: true, bool isDataSerializable: true}) async {
+  Future<void> updateDocWithRef(
+    DocumentReference docRef,
+    dynamic data, {
+    bool doUpdate = true,
+    bool isDataSerializable = true,
+  }) async {
     Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
 
     try {
@@ -187,8 +196,12 @@ class CjCloudFirestore {
 
   /// Write to any document on firestore when you have the document id OR are creating a new document.
   /// If data is not a serializable class, then it must be a map string dynamic. If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<bool> updateDocInCollection(String collName, dynamic data,
-      {String docId: "", bool isDataSerializable: true}) async {
+  Future<bool> updateDocInCollection(
+    String collName,
+    dynamic data, {
+    String docId = "",
+    bool isDataSerializable = true,
+  }) async {
     Map<String, dynamic> dataMap = isDataSerializable ? data.toJson() : data;
     CollectionReference collRef = collectionRef(collName);
     bool updated = false;
@@ -212,8 +225,10 @@ class CjCloudFirestore {
 
   /// Write to any document on firestore when you have a data map and the document id OR are creating a new document.
   Future<bool> updateDocInCollectionFromMap(
-      String collName, Map<String, dynamic> dataMap,
-      {String docId: ""}) async {
+    String collName,
+    Map<String, dynamic> dataMap, {
+    String docId = "",
+  }) async {
     CollectionReference? collRef = collectionRef(collName);
     bool updated = false;
 
@@ -238,11 +253,13 @@ class CjCloudFirestore {
   /// Write to or delete any document on firestore.
   /// If data is not a serializable class, then it must be a map string dynamic.
   /// If it is NOT a serializable class, pass [isDataSerializable] as false.
-  Future<bool> touchDocument(String collName,
-      {dynamic data,
-      String docId: "",
-      bool doWrite: true,
-      bool isDataSerializable: true}) async {
+  Future<bool> touchDocument(
+    String collName, {
+    dynamic data,
+    String docId = "",
+    bool doWrite = true,
+    bool isDataSerializable = true,
+  }) async {
     CollectionReference ref = collectionRef(collName);
     bool touched = false;
 
@@ -287,8 +304,11 @@ class CjCloudFirestore {
   /// Read a collection by applying the query params (if any).
   /// Return a list of the documents or document references depending on arguments.
   /// Returns an empty list if no documents in the collection match the query.
-  Future<List<dynamic>> readACollection(String tableName,
-      {MyFirestoreQueryParam? queryParam, bool getDocSnapshots: false}) async {
+  Future<List<dynamic>> readACollection(
+    String tableName, {
+    MyFirestoreQueryParam? queryParam,
+    bool getDocSnapshots = false,
+  }) async {
     queryParam = queryParam ??= MyFirestoreQueryParam()..orderAsc = true;
 
     // final collRef = collectionRef(tableName);// Oma fixed this line 22 Aug 2021.
@@ -306,7 +326,8 @@ class CjCloudFirestore {
     // If we have a query, we chain them in a loop.
     queryParam.where.forEach((param) {
       print(
-          "reading ${collRef.id} collection... where field => ${param.fieldName}, => ${param.op}, value => ${param.value}");
+        "reading ${collRef.id} collection... where field => ${param.fieldName}, => ${param.op}, value => ${param.value}",
+      );
       var value = param.value;
 
       // if (value == null) {
@@ -326,15 +347,19 @@ class CjCloudFirestore {
           useQuery = useQuery.where(param.fieldName, isLessThan: value);
           break;
         case MyFirestoreFilterOp.isLessThanOrEqualTo:
-          useQuery =
-              useQuery.where(param.fieldName, isLessThanOrEqualTo: value);
+          useQuery = useQuery.where(
+            param.fieldName,
+            isLessThanOrEqualTo: value,
+          );
           break;
         case MyFirestoreFilterOp.isGreaterThan:
           useQuery = useQuery.where(param.fieldName, isGreaterThan: value);
           break;
         case MyFirestoreFilterOp.isGreaterThanOrEqualTo:
-          useQuery =
-              useQuery.where(param.fieldName, isGreaterThanOrEqualTo: value);
+          useQuery = useQuery.where(
+            param.fieldName,
+            isGreaterThanOrEqualTo: value,
+          );
           break;
         case MyFirestoreFilterOp.arrayContains:
           useQuery = useQuery.where(param.fieldName, arrayContains: value);
@@ -395,8 +420,11 @@ class CjCloudFirestore {
 
   /// Return a single document snapshot for the passed collection and doc id.
   /// Returns null if no document bears that id.
-  Future<dynamic> readADocumentById(String tableName, String docId,
-      {bool getDocSnapshot: false}) async {
+  Future<dynamic> readADocumentById(
+    String tableName,
+    String docId, {
+    bool getDocSnapshot = false,
+  }) async {
     final String path = _docOrCollectionPath(tableName, docId: docId);
     // DocumentSnapshot? snapshot = await collectionRef(tableName).doc(docId).get();
     DocumentSnapshot? snapshot = await store.doc(path).get();
@@ -410,12 +438,17 @@ class CjCloudFirestore {
 
   /// Return a single document for the passed collection and query.
   Future<dynamic> readADocumentByQuery(
-      String tableName, MyFirestoreQueryParam queryParam,
-      {bool getDocSnapshot: false}) async {
+    String tableName,
+    MyFirestoreQueryParam queryParam, {
+    bool getDocSnapshot = false,
+  }) async {
     queryParam = queryParam;
 
-    final listOfDocsOrSnapshots = await readACollection(tableName,
-        queryParam: queryParam, getDocSnapshots: getDocSnapshot);
+    final listOfDocsOrSnapshots = await readACollection(
+      tableName,
+      queryParam: queryParam,
+      getDocSnapshots: getDocSnapshot,
+    );
 
     if (listOfDocsOrSnapshots.length == 0) return null;
 
@@ -502,7 +535,7 @@ enum MyFirestoreFilterOp {
   arrayContainsAny,
   whereIn,
   whereNotIn,
-  isNull
+  isNull,
 }
 
 // final modelsRef = FirebaseFirestore
