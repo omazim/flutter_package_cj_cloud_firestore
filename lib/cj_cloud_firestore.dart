@@ -94,15 +94,6 @@ class CjCloudFirestore {
     } catch (err) {
       print("error @_applySettings settings: $err");
     }
-    if (kIsWeb) {
-      try {
-        await _store.enablePersistence(
-          PersistenceSettings(synchronizeTabs: true),
-        );
-      } catch (err) {
-        print("error @_applySettings web persistence: $err");
-      }
-    }
   }
 
   String collectionNameFromTableName(String tableName) {
