@@ -1,6 +1,6 @@
 name: cj_cloud_firestore
 description: A Flutter package project with convenient methods for accessing Cloud Firestore.
-version: 0.2.0
+version: 0.3.0
 homepage:
 
 environment:
@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   
-  cloud_firestore: 6.0.0
+  cloud_firestore: 6.0.1
 
 dev_dependencies:
   flutter_test:
